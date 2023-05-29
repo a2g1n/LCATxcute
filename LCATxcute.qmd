@@ -8,6 +8,7 @@ format:
     code-fold: true
     code-summary: "Show the code"
 server: shiny
+runtime: shiny
 ---
 
 ```{r setup, include=FALSE}
