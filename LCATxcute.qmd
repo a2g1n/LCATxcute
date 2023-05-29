@@ -1,0 +1,1283 @@
+---
+title: "A malaria parasite phospholipase facilitates efficient asexual blood stage egress"
+author: "Abhinay Ramaprasad"
+date: "last update: `r format(Sys.Date(), format = '%d %B %Y')`" 
+format:
+  html:
+    toc: true
+    code-fold: true
+    code-summary: "Show the code"
+server: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+#loading all necessary R packages
+
+library("dplyr")
+library("tidyr")
+library("tibble")
+library("ggplot2")
+library("plotly")
+library("ggpubr")
+library("cowplot")
+library("Rmisc")
+library("rstatix")
+library("stringr")
+library("viridis")
+library("RColorBrewer")
+library("magick")
+library("forcats")
+library("colorspace")
+library("png")
+library("patchwork")
+library("shiny")
+library("shinyWidgets")
+library("rmarkdown")
+library("ggrepel")
+library("ggdist")
+```
+
+# Perforin-like proteins are dispensable for ABS egress
+
+## PPLP1:loxNint/PPLP2:loxPint growth assay (Figure 1C)
+```{r message=FALSE, tidy=TRUE}
+#Figure1C
+dckoPLP.growthassay <- read.csv("./Rawdata/dcKO_PLP_growthassay.csv")
+dckoPLP.growthassay <- dckoPLP.growthassay %>% filter(!(Line %in% c("wt")))
+summ.dckoPLP.growthassay <- summarySE(dckoPLP.growthassay, measurevar="Parasitaemia", groupvars=c("Line","Erythrocytic.cycle.number"), na.rm=TRUE)
+pd<-position_dodge(0.1)
+colorPalette<-c("black","black","grey","grey")
+linePalette<-c(1,3,1,3)
+pgrowth<-ggplot(summ.dckoPLP.growthassay, aes(x=Erythrocytic.cycle.number, y=Parasitaemia, group=Line)) +
+  geom_errorbar(aes(ymin=Parasitaemia-se, ymax=Parasitaemia+se), width=0.25, position=pd) +
+  geom_line(position=pd,aes(linetype=Line)) +
+  geom_point(position=pd,size=3,shape=21,aes(fill=Line)) +
+  scale_fill_manual(values=colorPalette) +
+  scale_linetype_manual(values=linePalette) +
+   #scale_shape_discrete(solid=T, guide=FALSE) +
+  theme(axis.title.x = element_text(size=10),axis.title.y = element_text(size=10),
+        legend.title=element_blank(),
+        #legend.text = element_text(size = 5),legend.text.align=0,
+        legend.background=element_blank(), legend.position=c(0.1,0.75), 
+        legend.key=element_blank(), legend.key.width = unit(1.25,"cm"),
+        axis.text=element_text(size=10,color="black"), 
+        axis.line = element_line(colour = "black"),
+        panel.grid=element_blank(), panel.background=element_blank()) +
+  xlab("Erythrocytic cycle number") +
+  ylab("Parasitaemia (%)")
+
+#ggsave(filename = "dckoPLP.growthassay.pdf")
+
+iplot1<-ggplotly(pgrowth, tooltip=c("x","y"))
+for (i in 1:length(iplot1$x$data)){
+    if (!is.null(iplot1$x$data[[i]]$name)){
+        iplot1$x$data[[i]]$name =  gsub("\\(","",str_split(iplot1$x$data[[i]]$name,",")[[1]][1])
+    }
+}
+```
+```{r fig1C, echo=FALSE, fig.cap= "<B>Figure 1C. Replication of mock- (solid line) and RAP-treated (dashed line) parasites from two clonal lines of PPLP1:loxNint/PPLP2:loxPint, C1 and C2, over three erythrocytic cycles (error bars, ± SD, triplicate RAP treatments with different blood sources). There is no significant difference in replication rates."}
+
+iplot1
+```
+
+## PLP1:loxPint growth assay (Supplementary Figure S1B)
+```{r message=FALSE, tidy=TRUE}
+#SupplFigure1B
+koPLP.growthassay <- read.csv("./Rawdata/KO_PLP_growthassay.csv")
+summ.koPLP.growthassay <- summarySE(koPLP.growthassay, measurevar="Parasitaemia", groupvars=c("Line","Erythrocytic.cycle.number"), na.rm=TRUE)
+pd<-position_dodge(0.1)
+colorPalette<-c("black","black","grey","grey")
+linePalette<-c(1,3,1,3)
+pgrowth<-ggplot(summ.koPLP.growthassay, aes(x=Erythrocytic.cycle.number, y=Parasitaemia, group=Line)) +
+  geom_errorbar(aes(ymin=Parasitaemia-se, ymax=Parasitaemia+se), width=0.25, position=pd) +
+  geom_line(position=pd,aes(linetype=Line)) +
+  geom_point(position=pd,size=3,shape=21,aes(fill=Line)) +
+  scale_fill_manual(values=colorPalette) +
+  scale_linetype_manual(values=linePalette) +
+   #scale_shape_discrete(solid=T, guide=FALSE) +
+  theme(axis.title.x = element_text(size=10),axis.title.y = element_text(size=10),
+        legend.title=element_blank(),
+        #legend.text = element_text(size = 5),legend.text.align=0,
+        legend.background=element_blank(), legend.position=c(0.1,0.75), 
+        legend.key=element_blank(), legend.key.width = unit(1.25,"cm"),
+        axis.text=element_text(size=10,color="black"), 
+        axis.line = element_line(colour = "black"),
+        panel.grid=element_blank(), panel.background=element_blank()) +
+  xlab("Erythrocytic cycle number") +
+  ylab("Parasitaemia (%)")
+
+#ggsave(filename = "koPLP.growthassay.pdf")
+
+iplot1<-ggplotly(pgrowth, tooltip=c("x","y"))
+for (i in 1:length(iplot1$x$data)){
+    if (!is.null(iplot1$x$data[[i]]$name)){
+        iplot1$x$data[[i]]$name =  gsub("\\(","",str_split(iplot1$x$data[[i]]$name,",")[[1]][1])
+    }
+}
+```
+```{r supplfig1B, echo=FALSE, fig.cap= "<B>Supplementary Figure 1B. Replication of PLP1:loxPint clonal line prior to second modification. The modified parasites show a normal replication rate across two cycles (error bars, ± SD, triplicate RAP treatments with different blood sources)."}
+
+iplot1
+```
+
+# Differential proteomics of SUB1-null schizonts identifies proteins discharged into the PV at egress
+
+```{r message=FALSE, tidy=TRUE}
+#Figure2C
+prot <- read.csv("./Rawdata/trappedproteomics.csv")
+prot <- prot %>% 
+  dplyr::select(C2min_1:C2pls_3,Protein.IDs,Description) %>%
+  filter(!(grepl("ribosomal protein",Description))) %>%
+  filter(!(grepl("proteasome",Description))) %>%
+  pivot_longer(cols=1:6,
+               names_to="samplename",
+               values_to="logintensity") %>%
+  mutate(group=rep(c(rep("C2min",3),
+                     rep("C2pls",3)),
+                   length.out=2616),
+         replicate=rep(c(1,2,3),length.out=2616),
+         Names=paste(Protein.IDs,"|",Description))
+
+foldchange<- prot %>% 
+  group_by(group,Protein.IDs) %>% 
+  dplyr::summarise(logmean=mean(logintensity)) %>% 
+  group_by(Protein.IDs) %>% 
+  dplyr::summarise(log2FC=first(logmean)-last(logmean))
+
+signi<- prot %>% 
+  group_by(Protein.IDs,Description,Names) %>% 
+  t_test(logintensity~group, 
+         p.adjust.method = "bonferroni") %>% 
+  add_significance("p") %>% 
+  mutate(log2FC=foldchange$log2FC) %>%
+  mutate(color=(ifelse(abs(log2FC)>1 & !(p.signif =="ns"), "red", 
+                       (ifelse(Protein.IDs %in% "PF3D7_0629300", "yellow", "gray50")))))
+
+volc = ggplot(signi %>% arrange(color), aes(log2FC, -log10(p),text=Names)) + #volcanoplot with log2Foldchange versus pvalue
+   geom_point(aes(col=color)) + #add points colored by significance
+   scale_color_manual(values=c("gray50","red","yellow")) +
+  scale_y_continuous("P-value", breaks=c(0,1,2,3), labels=c(1,0.1,0.01,0.001)) +
+  xlab("log2(C2-/C2+)") +
+  geom_hline(yintercept=1.30103, linetype="dashed", color = "black") +
+  geom_vline(xintercept=1, linetype="dashed", color = "black") +
+  geom_vline(xintercept=-1, linetype="dashed", color = "black") +
+  theme_minimal() +
+  xlim(-3,5) +
+  theme(legend.position = "none",
+        axis.text=element_text(size=10,color="black"))
+
+#label reds
+
+labvolc<- volc + geom_text_repel(
+  data=signi %>% filter(
+    !(color %in% "gray50") 
+    # Description %in% c("erythrocyte binding antigen-140",
+    #                              "merozoite TRAP-like protein",
+#                               "erythrocyte binding antigen-181",
+      #                               "translocon component PTEX88",
+      #                              "plasmepsin X",
+      #                              "merozoite surface protein 2",
+      #                              "merozoite surface protein 1",
+      #                               "phospholipase, putative") |
+      #         Protein.IDs %in% c("PF3D7_1202600","PF3D7_0202200")
+  ) %>%
+    arrange(desc(log2FC)), 
+                aes(label=c("EBA-140","GAMA","RBP2ha","MTRAP","EBA-181","PTEX88","PMX","MSP2","NEMF","MSP1","SUMO","LCAT","PF3D7_1439700","GIG","PTP1","TMK","PHISTb")),
+                size=3,
+                fontface="bold",
+                color="black",nudge_x= 0.2,hjust=0,segment.size = 0.2)
+
+#ggsave(filename = "proteomics.pdf",width=10, height=10, unit="cm")
+
+iplot1<-ggplotly(volc, tooltip="text")
+for (i in 1:length(iplot1$x$data)){
+    if (!is.null(iplot1$x$data[[i]]$name)){
+        iplot1$x$data[[i]]$name =  gsub("\\(","",str_split(iplot1$x$data[[i]]$name,",")[[1]][1])
+    }
+}
+```
+```{r fig2C, echo=FALSE, fig.cap= "<B>Figure 2C. Volcano plot showing enrichment of 11 proteins (red) in the C2-washed schizonts compared to C2-arrested SUB1-null schizonts (values averaged from biological triplicates)."}
+
+iplot1
+```
+
+# Conditional genetic ablation of LCAT reduces blood stage proliferation
+
+## LCAT:2loxPint growth assay (Figure 4E)
+```{r message=FALSE, tidy=TRUE}
+#Figure4E
+lcat.growthassay <- read.csv("./Rawdata/lcat_growthassay.csv")
+summ.lcat.growthassay <- summarySE(lcat.growthassay, measurevar="Parasitaemia", groupvars=c("Line","Erythrocytic.cycle.number"), na.rm=TRUE)
+pd<-position_dodge(0.1)
+colorPalette<-c("#074C00","#074C00","#42A341","#42A341")
+linePalette<-c(1,3,1,3)
+pgrowth<-ggplot(summ.lcat.growthassay, aes(x=Erythrocytic.cycle.number, y=Parasitaemia, group=Line)) +
+  geom_errorbar(aes(ymin=Parasitaemia-se, ymax=Parasitaemia+se), width=0.25, position=pd) +
+  geom_line(position=pd,aes(linetype=Line)) +
+  geom_point(position=pd,size=3,shape=21,aes(fill=Line)) +
+  scale_fill_manual(values=colorPalette) +
+  scale_linetype_manual(values=linePalette) +
+   #scale_shape_discrete(solid=T, guide=FALSE) +
+  theme(axis.title.x = element_text(size=10),axis.title.y = element_text(size=10),
+        legend.title=element_blank(),
+        #legend.text = element_text(size = 5),legend.text.align=0,
+        legend.background=element_blank(), legend.position=c(0.1,0.75), 
+        legend.key=element_blank(), legend.key.width = unit(1.25,"cm"),
+        axis.text=element_text(size=10,color="black"), 
+        axis.line = element_line(colour = "black"),
+        panel.grid=element_blank(), panel.background=element_blank()) +
+  xlab("Erythrocytic cycle number") +
+  ylab("Parasitaemia (%)")
+
+#ggsave(filename = "lcat.growthassay.pdf")
+
+iplot1<-ggplotly(pgrowth, tooltip=c("x","y"))
+for (i in 1:length(iplot1$x$data)){
+    if (!is.null(iplot1$x$data[[i]]$name)){
+        iplot1$x$data[[i]]$name =  gsub("\\(","",str_split(iplot1$x$data[[i]]$name,",")[[1]][1])
+    }
+}
+```
+```{r fig4E, echo=FALSE, fig.cap= "<B>Figure 4E. RAP-treatment results in reduced replication rate in two clonal lines, F10 and B10, of LCAT:2loxPint parasites. Data shown are averages from triplicate biological replicates using different blood sources (error bars, ± SD)."}
+
+iplot1
+```
+
+## LCAT:2loxPint plaque assay (Figure 4F)
+
+```{r message=FALSE, tidy=TRUE}
+#Figure 4F
+lcat.plaque <- read.csv("./Rawdata/lcat_plaqueassay.csv")
+pplaque<- ggplot(lcat.plaque, aes(x = Sample, y = PlaqueArea, color=Line, fill=Line)) + 
+  ggdist::stat_halfeye(
+    adjust = .5, 
+    width = .6, 
+    .width = 0, 
+    justification = -.3,
+    alpha = .6,
+    point_colour = NA
+    ) + 
+  geom_boxplot(
+    width = .25,
+    alpha = .6,
+    outlier.shape = NA
+  ) +
+  geom_point(
+    size = 1.3,
+    alpha = .3,
+    position = position_jitter(
+      seed = 1, width = .1
+    )
+  ) + 
+  coord_cartesian(xlim = c(1.2, NA), clip = "off") +
+  coord_flip() +
+  scale_color_manual(values= c("#42A341","#074C00")) +
+  scale_fill_manual(values= c("#42A341","#074C00")) +
+  theme(axis.title.x = element_text(size=10),
+        axis.title.y = element_text(size=10),
+        legend.title=element_blank(),
+        #legend.text = element_text(size = 5),legend.text.align=0,
+        legend.background=element_blank(), 
+        legend.position=c(0.9,0.9), 
+        legend.key=element_blank(), 
+        legend.key.width = unit(1.25,"cm"),
+        axis.text=element_text(size=10,color="black"), 
+        axis.line = element_line(colour = "black"),
+        panel.grid.major.x=element_line( size=.1, color="black" ), 
+        panel.background=element_blank()
+) +
+  xlab("Line") +
+  ylab("Area of Plaques (pixels)")
+
+#ggsave(filename = "plaque.pdf",width=10, height=10, unit="cm")
+
+```
+
+```{r fig4F, echo=FALSE, fig.cap= "<B>Figure 4F. RAP-treatment results in reduction in both number and area of clonal plaques formed over five erythrocytic cycles (10 days of growth) in LCAT:2loxPint clonal lines (individual points represent the area of each plaque, density plot shows distribution of these points and the boxplot provides median summary statistics)."}
+
+pplaque
+```
+
+# Loss of LCAT causes inefficient egress
+
+## LCAT:2loxPint egress (Figure 5D)
+
+```{r message=FALSE, tidy=TRUE}
+#Figure 5D
+lcat.egress <- read.csv("./Rawdata/abnormalegress.csv")
+pegress <- ggplot(data=lcat.egress, aes(x=factor(Treatment),y=pct,color=Treatment)) +
+  geom_line(aes(group=video),
+            linewidth=0.3,
+            color="gray") +
+  geom_boxplot(aes(group=Treatment,fill=Treatment),
+               width = .25,
+               alpha = .6,
+               outlier.shape = NA
+               ) +
+  geom_point(aes(size=totalevents),
+    alpha = .8,
+    stroke= 0,
+    position = position_dodge2(0.3),
+#    position = position_jitter(
+ #     seed = 1, 
+#      height = .1,
+ #     width = .1
+#    )
+  ) +
+  xlab("Treatment") + ylab("Rate of abnormal egress (%)") +
+  scale_fill_manual(values= c("gray45","#42A341")) +
+  scale_color_manual(values= c("gray45","#42A341")) +
+  theme_bw()
+
+pwc <- lcat.egress %>%
+  t_test(pct ~Treatment, paired = T) %>%
+  add_xy_position(x = "Treatment", fun = "mean_sd", dodge = 0.8)
+
+pegress <- pegress + stat_pvalue_manual(
+    pwc, label = "p", tip.length = 0.01,
+    bracket.nudge.y = 1
+    ) +
+  scale_y_continuous(expand = expansion(mult = c(0.1, 0.1)))
+
+#ggsave(filename = "egress.pdf",width=15, height=10, unit="cm")
+
+iplot1<-ggplotly(pegress, tooltip=c("x","y","totalevents"))
+for (i in 1:length(iplot1$x$data)){
+    if (!is.null(iplot1$x$data[[i]]$name)){
+        iplot1$x$data[[i]]$name =  gsub("\\(","",str_split(iplot1$x$data[[i]]$name,",")[[1]][1])
+    }
+}
+```
+
+```{r fig5D, echo=FALSE, fig.cap= "<B>Figure 5D. LCAT-null schizonts show a higher number of abnormal egress events (as described in Figure 5B) compared to mock-treated schizonts (paired Student’s t-test). Each paired datapoint represents a 30-40 min video of RAP- and mock-treated LCAT:2loxPint schizonts (one group randomly stained with Hoechst DNA stain in each video) undergoing egress (from a total of 7 independent experiments). Size of each datapoint represents the total number of egress events (abnormal + normal) counted in the video."}
+
+iplot1
+```
+
+## LCAT:2loxPint invasion assay (Figure 5E)
+
+```{r message=FALSE, tidy=TRUE}
+#Figure5E
+lcat.invasion <- read.csv("./Rawdata/lcat_invasionassay.csv")
+
+lcat.invasion.FC<-spread(lcat.invasion,Timepoint,Parasitaemia,fill=0) %>% transmute(Line,Treatment,Condition,Replicate,FoldChange=AFTER/BFOR)
+
+pinvasion<-ggplot(lcat.invasion.FC,
+       aes(x=factor(Treatment),y=FoldChange)) +
+  geom_dotplot(aes(fill = Treatment),   # Use fill = Species here not in ggplot()
+                 binaxis = "y",         # which axis to bin along
+                 binwidth = 0.2,        # Minimal difference considered diffeerent
+                 stackdir = "center",    # Centered
+                 dotsize = 0.75
+               ) +
+stat_summary(fun = median, 
+             fun.min = median, 
+             fun.max = median,
+             geom = "crossbar", 
+             width = 0.5) +
+  facet_grid(.~Condition,labeller=labeller(Condition=c(SHAK="SHAKING",STAT="STATIC"))) +
+  theme_bw() +
+  theme(axis.text=element_text(color="black"),
+        panel.grid=element_blank(), 
+        panel.background=element_blank(),
+        legend.position="none") +
+  scale_fill_manual(values = c("gray45","#42A341")) +
+  xlab("Treatment") + 
+  ylab("Fold Change in Parasitaemia")
+
+pwc <- lcat.invasion.FC %>% group_by(Condition) %>%
+  t_test(FoldChange ~Treatment, p.adjust.method = "bonferroni") %>%
+  add_xy_position(x = "Treatment", fun = "mean_sd", dodge = 0.8)
+
+pinvasion <- pinvasion + stat_pvalue_manual(
+    pwc, label = "p", tip.length = 0.01,
+    bracket.nudge.y = 1
+    ) +
+  scale_y_continuous(expand = expansion(mult = c(0.1, 0.1)))
+#plotly does not work with geom_dotplot
+#ggsave(filename = "invasion.pdf",width=10, height=10, unit="cm")
+```
+
+```{r fig5E, echo=FALSE, fig.cap= "<B>Figure 5E. Fold change in parasitaemia after 4 h invasion of mock- (-RAP) and RAP-treated (+RAP) LCAT:2loxPint schizonts under shaking and static conditions. Static cultures show a significantly lower fold change in parasitaemia in RAP-treated parasites compared to mock-treated controls, while show no significant difference between the groups was observed in shaking cultures (error bars, ± SD, four replicate RAP treatments with different blood sources; individual points represent each replicate)."}
+
+pinvasion
+```
+
+## LCAT:2loxPint poration (Figure 5G)
+
+```{r message=FALSE, warning=FALSE, tidy=TRUE}
+#Figure5G
+lcat.poration <- read.csv("./Rawdata/poration.csv")
+
+pporation <- ggplot(data=lcat.poration, aes(x=Treatment,y=pct,color=Treatment)) +
+  geom_line(aes(group=video),
+            size=0.3,
+            color="gray") +
+  geom_boxplot(aes(group=Treatment,fill=Treatment),
+               width = .25,
+               alpha = .6,
+               outlier.shape = NA
+               ) +
+  geom_point(aes(size=totalschizonts),
+    alpha = .8,
+    stroke= 0,
+    position = position_dodge2(0.3),
+#    position = position_jitter(
+ #     seed = 1, 
+#      height = .1,
+ #     width = .1
+#    )
+  ) +
+  xlab("Treatment") + ylab("Rate of poration (%)") +
+  scale_fill_manual(values= c("gray45","#42A341")) +
+  scale_color_manual(values= c("gray45","#42A341")) +
+  ylim(0,100) +
+  theme_bw()
+
+pwc <- lcat.poration %>%
+  t_test(pct ~Treatment, paired = T) %>%
+  add_xy_position(x = "Treatment", fun = "mean_sd", dodge = 0.8)
+
+pporation <- pporation + stat_pvalue_manual(
+    pwc, label = "p", tip.length = 0.01,
+    bracket.nudge.y = 1
+    )
+  scale_y_continuous(expand = expansion(mult = c(0.1, 0.1)))
+
+#ggsave(filename = "poration.pdf",width=15, height=10, unit="cm")
+
+iplot1<-ggplotly(pporation, tooltip=c("x","y","totalevents"))
+for (i in 1:length(iplot1$x$data)){
+    if (!is.null(iplot1$x$data[[i]]$name)){
+        iplot1$x$data[[i]]$name =  gsub("\\(","",str_split(iplot1$x$data[[i]]$name,",")[[1]][1])
+    }
+}
+```
+
+```{r fig5G, echo=FALSE, fig.cap= "<B>Figure 5G. A subtle decrease in the rate of RBCM poration (paired Student’s t-test) was observed in RAP-treated schizonts compared to mock-treated schizonts. Each paired datapoint represents a 30-40 min video of RAP- and mock-treated LCAT:2loxPint schizonts (one group randomly stained with Hoechst DNA stain in each video) undergoing egress in the presence of E64 (from a total of 3 independent experiments). Size of each datapoint represents the total number of schizonts counted in the video."}
+
+iplot1
+```
+
+## LCAT:2loxPint poration as measured by flow cytometer (Figure 5H)
+
+```{r message=FALSE, warning=FALSE, tidy=TRUE}
+#Figure5H
+lcat.poration.facs <- read.csv("./Rawdata/poration_facs.csv")
+
+pporationfacs <- ggplot(data=lcat.poration.facs, aes(x=Treatment,y=pct,color=Treatment)) +
+  geom_boxplot(aes(group=Treatment,fill=Treatment),
+               width = .25,
+               alpha = .6,
+               outlier.shape = NA
+               ) +
+  geom_point(size=4,alpha = .8,
+    stroke= 0,
+    position = position_dodge2(0.3),
+#    position = position_jitter(
+ #     seed = 1, 
+#      height = .1,
+ #     width = .1
+#    )
+  ) +
+  xlab("Treatment") + ylab("Rate of poration (%)") +
+  scale_fill_manual(values= c("gray45","#42A341")) +
+  scale_color_manual(values= c("gray45","#42A341")) +
+  ylim(20,40) +
+  theme_bw()
+
+pwc <- lcat.poration.facs %>%
+  t_test(pct ~Treatment) %>%
+  add_xy_position(x = "Treatment", fun = "mean_sd", dodge = 0.8)
+
+pporationfacs <- pporationfacs + stat_pvalue_manual(
+    pwc, label = "p", tip.length = 0.01,
+    bracket.nudge.y = 1
+    )
+  scale_y_continuous(expand = expansion(mult = c(0.1, 0.1)))
+
+#ggsave(filename = "porationfacs.pdf",width=15, height=10, unit="cm")
+  
+iplot1<-ggplotly(pporationfacs, tooltip=c("x","y","totalevents"))
+for (i in 1:length(iplot1$x$data)){
+    if (!is.null(iplot1$x$data[[i]]$name)){
+        iplot1$x$data[[i]]$name =  gsub("\\(","",str_split(iplot1$x$data[[i]]$name,",")[[1]][1])
+    }
+}
+```
+
+```{r fig5H, echo=FALSE, fig.cap= "<B>Figure 5H. Flow cytometry analysis showed emergence of porated parasitized RBCs (iRBCs) that emit higher fluorescence intensity from phalloidin following 30 min of egress in the presence of E64 (30 min + E64) after washing off C2. Samples harvested before washing off C2 (0 min + C2) or maintained in C2 for the same 30 min period (30 min + C2) served as controls. A slight but consistent decrease in proportion of porated (iRBCs) was observed in RAP-treated compared to mock-treated schizonts."}
+
+iplot1
+```
+
+# Phosphatidylserine and acylphosphatidylglycerol levels change during egress of LCAT-null parasites
+
+## Comparing lipid profiles of RAP- and mock-treated LCAT:2loxPint schizonts just prior to egress (Supplementary Figure S4A)
+
+```{r message=FALSE, warning=FALSE, tidy=TRUE}
+# assigning colors
+colormatch<-tibble(Class=c("PC","PE", "PG", "PI", "PS", "LPC", "Plasmanyl-LPC", "Plasmenyl-PE", "acylPG", "BMP", "CL", "SM", "Cer-NS", "DG","TG","AcCar","Plasmanyl-PC","Plasmenyl-PC"),
+            color=c("#61b0c1",
+"#8f46d6",
+"#a8ce42",
+"#cb46b4",
+"#65bf8a",
+"#48276e",
+"#989e53",
+"#6770d6",
+"#c75d32",
+"#6d8ec8",
+"#ffdf0c",
+"#c14c6b",
+"#95b0a6",
+"#645043",
+"#c17cc5",
+"#e2a8c2",
+"#eceecb",
+"#82d5c4"
+))
+
+colorpalette <- c("#61b0c1",
+"#8f46d6",
+"#a8ce42",
+"#cb46b4",
+"#65bf8a",
+"#48276e",
+"#989e53",
+"#6770d6",
+"#c75d32",
+"#6d8ec8",
+"#ffdf0c",
+"#c14c6b",
+"#95b0a6",
+"#645043",
+"#c17cc5",
+"#e2a8c2",
+"#eceecb",
+"#82d5c4"
+)
+```
+
+```{r message=FALSE, warning=FALSE, tidy=TRUE}
+#SupplFigure4A
+lcat.lipidomics1 <- read.csv("./rawdata/lipidomics1.csv")
+lcat.lipidomics1<- lcat.lipidomics1 %>%
+  dplyr::select(4:21,28) %>%
+  pivot_longer(cols=1:18,
+               names_to="samplename",
+               values_to="peakarea") %>%
+  mutate(
+    species=Molecular,
+    Group=rep(c(rep("DMSO",9),
+                     rep("RAP",9)),
+                   length.out=2070),
+         replicate=rep(c(1,2,3),
+                       length.out=2070),
+         Batch=rep(c(rep(1,3),
+                     rep(2,3),
+                     rep(3,3)),
+                   length.out=2070)
+         ) %>%
+  filter(species != c('Co(Q10)')) 
+
+
+lcat.lipidomics1<- lcat.lipidomics1 %>%
+  #removing outlier tech replicates
+filter(!(samplename %in% c("LD33.Peak.area",
+                         "LR22.Peak.area",
+                         "LR33.Peak.area"
+                           ))) %>%
+   #removing species with 0 value in any sample
+  filter(!(species %in% c("DG(14:0_18:2)","Plasmenyl-PE(P-16:0/22:4)","PE(41:5)"))) %>%
+  dplyr::select(-c(Molecular,replicate,samplename)) %>%
+  group_by(Group,Batch,species) %>% 
+  summarise_all(mean) %>%
+  mutate(logpeakarea=log2(peakarea))  %>%
+  mutate(Class = str_extract(species, "^[^(]+"))
+
+peakareas1<-lcat.lipidomics1
+
+foldchange1<-peakareas1 %>% group_by(Group,species) %>% 
+  dplyr::summarise(logmean=mean(logpeakarea)) %>% 
+  group_by(species) %>% 
+  dplyr::summarise(log2FC=last(logmean)-first(logmean)) 
+
+signi1<- peakareas1 %>% group_by(species, Class) %>% t_test(logpeakarea~Group, p.adjust.method = "bonferroni") %>% add_significance("p") %>% mutate(log2FC=foldchange1$log2FC)
+
+signi1<- signi1 %>%
+  mutate(Class = fct_relevel(Class, 
+            "PC","PE", "PG", "PI", "PS", "LPC", "Plasmanyl-LPC", "Plasmenyl-PE", "acylPG", "BMP", "CL", "SM", "Cer-NS", "DG","TG","AcCar","Plasmanyl-PC","Plasmenyl-PC")) %>%
+  mutate(species= fct_reorder(species, Class, .fun = identity))
+
+avgpeakareas1<-peakareas1 %>%
+  group_by(Group,Batch,species) %>% 
+  summarise_all(mean) %>%
+  group_by(Group,species) %>%
+  dplyr::summarise(mean=mean(peakarea),sd=sd(peakarea)) %>% 
+  mutate(Class = str_extract(species, "^[^(]+"))
+
+#plot/plot # to conserve same size as lipidomics2 plots
+#ggsave(filename = "lcatbubbles.pdf",width=20, height=20, unit="cm")
+```
+
+```{r message=FALSE, warning=FALSE, tidy=TRUE}
+# Define UI for application that draws a histogram
+ui <- fluidPage(
+
+verticalLayout(
+
+            sliderTextInput("pvalue",
+                        "p-value less than",
+                        choices = c(0.005,0.01,0.05,0.1,0.5,1),
+                        selected= 1,
+                        grid=T,
+                        width="200px"
+            ),
+            radioButtons("Class",
+                         "Lipid Class",
+                         choices = c("All","PC","PE", "PG", "PI", "PS", "LPC", "Plasmanyl-LPC", "Plasmenyl-PE", "acylPG", "BMP", "CL", "SM", "Cer-NS", "DG","TG","AcCar","Plasmanyl-PC","Plasmenyl-PC"),
+                         selected = "All",
+                         inline=T
+),
+
+
+        # Show a plot of the generated distribution
+        mainPanel(
+           plotlyOutput("lipidbubbles1"),
+          plotlyOutput("barplot1")
+        )
+   )
+)
+
+# Define server logic required to draw a histogram
+server <- function(input, output) {
+
+    output$lipidbubbles1 <- renderPlotly({
+      pvalue<-input$pvalue
+      class<-input$Class
+      if(class %in% "All"){
+        signi1<- signi1 %>% filter(p < pvalue)
+      }
+      else{
+          signi1 <- signi1 %>% filter(p < pvalue,Class %in% class)
+      }
+          plot1<- ggplot(signi1,aes(x=species,y=log2FC,fill=Class)) +
+          geom_hline(yintercept=0, linetype="dashed", color = "grey") +
+          geom_point(aes(size = -log10(p)), shape=21, stroke=0.1) +
+          scale_fill_manual(values = colorpalette,
+                            breaks=c("PC","PE", "PG", "PI", "PS", "LPC", "Plasmanyl-LPC", "Plasmenyl-PE", "acylPG", "BMP", "CL", "SM", "Cer-NS", "DG","TG","AcCar","Plasmanyl-PC","Plasmenyl-PC")) +
+          scale_size(breaks=c(0.01,1.3,3.8),limits=c(0.01,3.8)) +
+          theme_bw() +
+          theme(axis.text=element_text(color="black"), 
+                axis.text.x = element_blank(),
+                axis.ticks.x = element_blank(),
+                axis.title.x = element_blank(),
+                panel.grid=element_blank(), 
+                panel.background=element_blank(),
+                legend.position = "none") +
+          ylab("log2( + RAP / - RAP)")
+          ggplotly(plot1, tooltip=c("x","y","p"))
+          })
+     
+    output$barplot1<-renderPlotly({
+      pvalue<-input$pvalue
+      class<-input$Class
+      color<-colormatch[colormatch$Class %in% class,]$color
+      if(class %in% "All"){
+        return(NULL)
+      }
+      else{
+        signi1 <- signi1 %>% filter(p < pvalue,Class %in% class)
+        avgpeakareas1<- avgpeakareas1 %>% filter(species %in% signi1$species)
+      }
+      pbar1<-ggplot(avgpeakareas1,aes(x=reorder(species,-mean),y=mean,fill=Group)) +
+      geom_bar(position=position_dodge(), stat="identity") +
+      geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.2,size=0.1,position=position_dodge(0.9)) +
+     scale_fill_manual(values = c(lighten(color,amount=0.75),color)) +
+        theme_minimal() +
+        theme(axis.text=element_text(size=10,color="black"), 
+            axis.text.x = element_text(angle = 45, hjust = 1),
+            aspect.ratio = 1/7,
+            legend.position = "bottom") +
+      xlab(element_blank()) +
+      ylab("Relative Abundance")
+      ggplotly(pbar1, tooltip=c("x","y"))
+    })
+}
+```
+
+Static bubble plot
+
+```{r}
+plot1<- ggplot(signi1,aes(x=species,y=log2FC,fill=Class)) +
+          geom_hline(yintercept=0, linetype="dashed", color = "grey") +
+          geom_point(aes(size = -log10(p)), shape=21, stroke=0.1) +
+          scale_fill_manual(values = colorpalette,
+                            breaks=c("PC","PE", "PG", "PI", "PS", "LPC", "Plasmanyl-LPC", "Plasmenyl-PE", "acylPG", "BMP", "CL", "SM", "Cer-NS", "DG","TG","AcCar","Plasmanyl-PC","Plasmenyl-PC")) +
+          scale_size(breaks=c(0.01,1.3,3.8),limits=c(0.01,3.8)) +
+          theme_bw() +
+          theme(axis.text=element_text(color="black"), 
+                axis.text.x = element_blank(),
+                axis.ticks.x = element_blank(),
+                axis.title.x = element_blank(),
+                panel.grid=element_blank(), 
+                panel.background=element_blank(),
+                legend.position = "none") +
+          ylab("log2( + RAP / - RAP)")
+ggplotly(plot1, tooltip=c("x","y","p"))
+```
+
+Interactive bubble plot
+
+```{r supplfig4A, echo=FALSE, fig.cap= "<B>Supplementary Figure 4A. Lipidomic analysis of LCAT:2loxPint egress-stalled schizonts following mock-or RAP-treatment at ring stages. The bubble plot shows the fold change (y-axis) in levels of various lipid species (each lipid class denoted with a different colour) in LCAT-null schizonts compared to controls (3 independent biological replicates). No significant change in phospholipid levels were detected between the samples."}
+
+
+# Run the application 
+shinyApp(ui = ui, server = server, options = list(height = 1000))
+
+```
+
+## Comparing lipid profiles of RAP- and mock-treated LCAT:2loxPint schizonts before and immediately following egress 
+
+### Lipid changes during egress of RAP-treated LCAT:2loxPint schizonts (Supplementary Figure S4B)
+
+```{r message=FALSE, warning=FALSE, tidy=TRUE}
+#SupplFigure4B
+lcat.lipidomics2 <- read.csv("./Rawdata/lipidomics2.csv")
+lcat.lipidomics2<- lcat.lipidomics2 %>%
+  dplyr::select(5:28,1) %>%
+  pivot_longer(cols=1:24,
+               names_to="samplename",
+               values_to="peakarea") %>%
+  mutate(
+    species=Molecular,
+    Group=rep(c(rep("DMSO_C2",6),
+                rep("DMSO_noC2",6),
+                rep("RAP_C2",6),
+                rep("RAP_noC2",6)),
+                   length.out=3504),
+         replicate=rep(c(1,2,3,4,5,6),
+                       length.out=3504)
+    ) %>%
+  filter(species != c('Co(Q10)')) 
+
+
+lcat.lipidomics2<- lcat.lipidomics2 %>%
+  #removing species with 0 value in any sample
+  filter(!(species %in% c("AcCar(16:0)","LPC(16:0)","LPC(18:0)","LPC(18:1)","PE(18:1_22:6)","PE(18:2_20:4)","Plasmenyl-PE(P-18:1/18:1)"))) %>%
+  dplyr::select(-c(Molecular,samplename)) %>%
+  #group_by(Group,species) %>% 
+ # summarise_all(mean) %>%
+  mutate(logpeakarea=log2(peakarea))  %>%
+  mutate(Class = str_extract(species, "^[^(]+"))
+
+avgpeakareas2<-lcat.lipidomics2 %>%
+  group_by(Group,replicate,species) %>% 
+  summarise_all(mean) %>%
+  group_by(Group,species) %>%
+  dplyr::summarise(mean=mean(peakarea),sd=sd(peakarea)) %>% 
+  mutate(Class = str_extract(species, "^[^(]+"))
+
+peakareas2.rap<-lcat.lipidomics2 %>% filter(Group %in% c("RAP_C2","RAP_noC2")) 
+
+foldchange2.rap<-peakareas2.rap %>%
+  group_by(Group,species) %>% 
+  dplyr::summarise(logmean=mean(logpeakarea)) %>% 
+  group_by(species) %>% 
+  dplyr::summarise(log2FC=last(logmean)-first(logmean)) 
+
+signi2.rap<- peakareas2.rap %>% 
+  group_by(species, Class) %>%
+  t_test(logpeakarea~Group, p.adjust.method = "bonferroni") %>% 
+  add_significance("p") %>% 
+  mutate(log2FC=foldchange2.rap$log2FC)
+
+signi2.rap<- signi2.rap %>%
+  mutate(Class = fct_relevel(Class, 
+            "PC","PE", "PG", "PI", "PS", "LPC", "Plasmanyl-LPC","Plasmanyl-PC","Plasmenyl-PC", "Plasmenyl-PE", "CL", "AcCar", "acylPG", "BMP","SM", "Cer-NS", "DG","TG")) %>%
+  mutate(species= fct_reorder(species, Class, .fun = identity))
+
+avgpeakareas2.rap<-peakareas2.rap %>%
+#  group_by(Group,replicate,species) %>% 
+#  summarise_all(mean) %>%
+  group_by(Group,species) %>%
+  dplyr::summarise(mean=mean(peakarea),sd=sd(peakarea)) %>% 
+  mutate(Class = str_extract(species, "^[^(]+"))
+
+peakareas2.dmso<-lcat.lipidomics2 %>% filter(Group %in% c("DMSO_C2","DMSO_noC2")) 
+
+foldchange2.dmso<-peakareas2.dmso %>%
+  group_by(Group,species) %>% 
+  dplyr::summarise(logmean=mean(logpeakarea)) %>% 
+  group_by(species) %>% 
+  dplyr::summarise(log2FC=last(logmean)-first(logmean)) 
+
+signi2.dmso<- peakareas2.dmso %>% group_by(species, Class) %>% t_test(logpeakarea~Group, p.adjust.method = "bonferroni") %>% add_significance("p") %>% mutate(log2FC=foldchange2.dmso$log2FC)
+
+
+signi2.dmso<- signi2.dmso %>%
+  mutate(Class = fct_relevel(Class, 
+            "PC","PE", "PG", "PI", "PS", "LPC", "Plasmanyl-LPC","Plasmanyl-PC","Plasmenyl-PC", "Plasmenyl-PE", "CL", "AcCar", "acylPG", "BMP","SM", "Cer-NS", "DG","TG")) %>%
+  mutate(species= fct_reorder(species, Class, .fun = identity))
+
+avgpeakareas2.dmso<-peakareas2.dmso %>%
+#  group_by(Group,replicate,species) %>% 
+#  summarise_all(mean) %>%
+  group_by(Group,species) %>%
+  dplyr::summarise(mean=mean(peakarea),sd=sd(peakarea)) %>% 
+  mutate(Class = str_extract(species, "^[^(]+"))
+```
+
+
+```{r message=FALSE, warning=FALSE, tidy=TRUE}
+#SupplFigure4B (+RAP)
+# Define UI for application that draws a histogram
+ui <- fluidPage(
+
+verticalLayout(
+
+            sliderTextInput("pvalue",
+                        "p-value less than",
+                        choices = c(0.005,0.01,0.05,0.1,0.5,1),
+                        selected= 1,
+                        grid=T,
+                        width="200px"
+            ),
+            radioButtons("Class",
+                         "Lipid Class",
+                         choices = c("All","PC","PE", "PG", "PI", "PS", "LPC", "Plasmanyl-LPC", "Plasmenyl-PE", "acylPG", "BMP", "CL", "SM", "Cer-NS", "DG","TG","AcCar","Plasmanyl-PC","Plasmenyl-PC"),
+                         selected = "All",
+                         inline=T
+),
+
+
+        # Show a plot of the generated distribution
+        mainPanel(
+           plotlyOutput("lipidbubbles2"),
+          plotlyOutput("barplot2")
+        )
+   )
+)
+
+# Define server logic required to draw a histogram
+server <- function(input, output) {
+
+    output$lipidbubbles2 <- renderPlotly({
+      pvalue<-input$pvalue
+      class<-input$Class
+      if(class %in% "All"){
+        signi2.rap<- signi2.rap %>% filter(p < pvalue)
+      }
+      else{
+          signi2.rap <- signi2.rap %>% filter(p < pvalue,Class %in% class)
+      }
+          plot2<- ggplot(signi2.rap,aes(x=species,y=log2FC,fill=Class)) +
+          geom_hline(yintercept=0, linetype="dashed", color = "grey") +
+          geom_point(aes(size = -log10(p)), shape=21, stroke=0.1) +
+          scale_fill_manual(values = colorpalette,
+                            breaks=c("PC","PE", "PG", "PI", "PS", "LPC", "Plasmanyl-LPC", "Plasmenyl-PE", "acylPG", "BMP", "CL", "SM", "Cer-NS", "DG","TG","AcCar","Plasmanyl-PC","Plasmenyl-PC")) +
+          scale_size(breaks=c(0.01,1.3,3.8),limits=c(0.01,3.8)) +
+          theme_bw() +
+          theme(axis.text=element_text(color="black"), 
+                axis.text.x = element_blank(),
+                axis.ticks.x = element_blank(),
+                axis.title.x = element_blank(),
+                panel.grid=element_blank(), 
+                panel.background=element_blank(),
+                legend.position = "none") +
+          ylab("log2( Egressed / Egress-stalled) LCAT-null")
+          ggplotly(plot2, tooltip=c("x","y","p"))
+          })
+     
+    output$barplot2<-renderPlotly({
+      pvalue<-input$pvalue
+      class<-input$Class
+      color<-colormatch[colormatch$Class %in% class,]$color
+      if(class %in% "All"){
+        return(NULL)
+      }
+      else{
+        signi2.rap <- signi2.rap %>% filter(p < pvalue,Class %in% class)
+        avgpeakareas2.rap<- avgpeakareas2.rap %>% filter(species %in% signi2.rap$species)
+      }
+      pbar2<-ggplot(avgpeakareas2.rap,aes(x=reorder(species,-mean),y=mean,fill=Group)) +
+      geom_bar(position=position_dodge(), stat="identity") +
+      geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.2,size=0.1,position=position_dodge(0.9)) +
+     scale_fill_manual(values = c(lighten(color,amount=0.75),color)) +
+        theme_minimal() +
+        theme(axis.text=element_text(size=10,color="black"), 
+            axis.text.x = element_text(angle = 45, hjust = 1),
+            aspect.ratio = 1/7,
+            legend.position = "bottom") +
+      xlab(element_blank()) +
+      ylab("Relative Abundance")
+      ggplotly(pbar2, tooltip=c("x","y"))
+    })
+}
+```
+
+Static bubble plot
+
+```{r}
+plot2<- ggplot(signi2.rap,aes(x=species,y=log2FC,fill=Class)) +
+          geom_hline(yintercept=0, linetype="dashed", color = "grey") +
+          geom_point(aes(size = -log10(p)), shape=21, stroke=0.1) +
+          scale_fill_manual(values = colorpalette,
+                            breaks=c("PC","PE", "PG", "PI", "PS", "LPC", "Plasmanyl-LPC", "Plasmenyl-PE", "acylPG", "BMP", "CL", "SM", "Cer-NS", "DG","TG","AcCar","Plasmanyl-PC","Plasmenyl-PC")) +
+          scale_size(breaks=c(0.01,1.3,3.8),limits=c(0.01,3.8)) +
+          theme_bw() +
+          theme(axis.text=element_text(color="black"), 
+                axis.text.x = element_blank(),
+                axis.ticks.x = element_blank(),
+                axis.title.x = element_blank(),
+                panel.grid=element_blank(), 
+                panel.background=element_blank(),
+                legend.position = "none") +
+          ylab("log2( Egressed / Egress-stalled) LCAT-null")
+ggplotly(plot2, tooltip=c("x","y","p"))
+```
+
+Interactive bubble plot
+
+```{r supplfig4Ba, echo=FALSE, fig.cap= "<B>Supplementary Figure 4B(a). Bubble plot showing the fold change in levels of various lipid species before and after egress of RAP-treated (+RAP) LCAT:2loxPint parasites (6 independent biological replicates)."}
+
+
+# Run the application 
+shinyApp(ui = ui, server = server, options = list(height = 1000))
+
+```
+
+### Lipid changes during egress of mock-treated LCAT:2loxPint schizonts (Supplementary Figure S4B)
+
+```{r message=FALSE, warning=FALSE, tidy=TRUE}
+#SupplFigure4B (-RAP)
+# Define UI for application that draws a histogram
+ui <- fluidPage(
+
+verticalLayout(
+
+            sliderTextInput("pvalue",
+                        "p-value less than",
+                        choices = c(0.005,0.01,0.05,0.1,0.5,1),
+                        selected= 1,
+                        grid=T,
+                        width="200px"
+            ),
+            radioButtons("Class",
+                         "Lipid Class",
+                         choices = c("All","PC","PE", "PG", "PI", "PS", "LPC", "Plasmanyl-LPC", "Plasmenyl-PE", "acylPG", "BMP", "CL", "SM", "Cer-NS", "DG","TG","AcCar","Plasmanyl-PC","Plasmenyl-PC"),
+                         selected = "All",
+                         inline=T
+),
+
+
+        # Show a plot of the generated distribution
+        mainPanel(
+           plotlyOutput("lipidbubbles3"),
+          plotlyOutput("barplot3")
+        )
+   )
+)
+
+# Define server logic required to draw a histogram
+server <- function(input, output) {
+
+    output$lipidbubbles3 <- renderPlotly({
+      pvalue<-input$pvalue
+      class<-input$Class
+      if(class %in% "All"){
+        signi2.dmso<- signi2.dmso %>% filter(p < pvalue)
+      }
+      else{
+          signi2.dmso <- signi2.dmso %>% filter(p < pvalue,Class %in% class)
+      }
+          plot3<- ggplot(signi2.dmso,aes(x=species,y=log2FC,fill=Class)) +
+          geom_hline(yintercept=0, linetype="dashed", color = "grey") +
+          geom_point(aes(size = -log10(p)), shape=21, stroke=0.1) +
+          scale_fill_manual(values = colorpalette,
+                            breaks=c("PC","PE", "PG", "PI", "PS", "LPC", "Plasmanyl-LPC", "Plasmenyl-PE", "acylPG", "BMP", "CL", "SM", "Cer-NS", "DG","TG","AcCar","Plasmanyl-PC","Plasmenyl-PC")) +
+          scale_size(breaks=c(0.01,1.3,3.8),limits=c(0.01,3.8)) +
+          theme_bw() +
+          theme(axis.text=element_text(color="black"), 
+                axis.text.x = element_blank(),
+                axis.ticks.x = element_blank(),
+                axis.title.x = element_blank(),
+                panel.grid=element_blank(), 
+                panel.background=element_blank(),
+                legend.position = "none") +
+          ylab("log2( Egressed / Egress-stalled) wildtype")
+          ggplotly(plot3, tooltip=c("x","y","p"))
+          })
+     
+    output$barplot3<-renderPlotly({
+      pvalue<-input$pvalue
+      class<-input$Class
+      color<-colormatch[colormatch$Class %in% class,]$color
+      if(class %in% "All"){
+        return(NULL)
+      }
+      else{
+        signi2.dmso <- signi2.dmso %>% filter(p < pvalue,Class %in% class)
+        avgpeakareas2.dmso<- avgpeakareas2.dmso %>% filter(species %in% signi2.dmso$species)
+      }
+      pbar3<-ggplot(avgpeakareas2.dmso,aes(x=reorder(species,-mean),y=mean,fill=Group)) +
+      geom_bar(position=position_dodge(), stat="identity") +
+      geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.2,size=0.1,position=position_dodge(0.9)) +
+     scale_fill_manual(values = c(lighten(color,amount=0.75),color)) +
+        theme_minimal() +
+        theme(axis.text=element_text(size=10,color="black"), 
+            axis.text.x = element_text(angle = 45, hjust = 1),
+            aspect.ratio = 1/7,
+            legend.position = "bottom") +
+      xlab(element_blank()) +
+      ylab("Relative Abundance")
+      ggplotly(pbar3, tooltip=c("x","y"))
+    })
+}
+```
+
+Static bubble plot
+
+```{r}
+plot3<- ggplot(signi2.dmso,aes(x=species,y=log2FC,fill=Class)) +
+          geom_hline(yintercept=0, linetype="dashed", color = "grey") +
+          geom_point(aes(size = -log10(p)), shape=21, stroke=0.1) +
+          scale_fill_manual(values = colorpalette,
+                            breaks=c("PC","PE", "PG", "PI", "PS", "LPC", "Plasmanyl-LPC", "Plasmenyl-PE", "acylPG", "BMP", "CL", "SM", "Cer-NS", "DG","TG","AcCar","Plasmanyl-PC","Plasmenyl-PC")) +
+          scale_size(breaks=c(0.01,1.3,3.8),limits=c(0.01,3.8)) +
+          theme_bw() +
+          theme(axis.text=element_text(color="black"), 
+                axis.text.x = element_blank(),
+                axis.ticks.x = element_blank(),
+                axis.title.x = element_blank(),
+                panel.grid=element_blank(), 
+                panel.background=element_blank(),
+                legend.position = "none") +
+          ylab("log2( Egressed / Egress-stalled) wildtype")
+ggplotly(plot3, tooltip=c("x","y","p"))
+```
+
+Interactive bubble plot
+
+```{r supplfig4Bb, echo=FALSE, fig.cap= "<B>Supplementary Figure 4B(b). Bubble plot showing the fold change in levels of various lipid species before and after egress of mock-treated (-RAP) LCAT:2loxPint parasites (6 independent biological replicates)."}
+
+# Run the application 
+shinyApp(ui = ui, server = server, options = list(height = 1000))
+
+```
+
+```{r}
+#subplot(plot.rap,plot.dmso,nrows=2)
+#plot.rap/plot.dmso
+#ggsave(filename = "egressbubbles.pdf",width=20, height=10, unit="cm")
+```
+
+### Volcano plots showing phospholipid changes during egress (Figure 6C)
+
+```{r message=FALSE, warning=FALSE, tidy=TRUE}
+#Figure6C
+data<- signi2.rap %>% 
+  mutate(color=(ifelse(abs(log2FC)>0.5 & !(p.signif =="ns"), "red", "black")))
+volc.rap = ggplot(data, aes(log2FC, -log10(p),text=species)) + #volcanoplot with log2Foldchange versus pvalue
+   geom_point(aes(col=color)) + #add points colored by significance
+  scale_color_manual(values=c("gray50","red")) +
+  scale_y_continuous("P-value", breaks=c(0,1,2,3), labels=c(1,0.1,0.01,0.001)) +
+  labs(x="log2(after/before egress) +RAP") +
+  geom_hline(yintercept=1.30103, linetype="dashed", color = "black") +
+  geom_vline(xintercept=.5, linetype="dashed", color = "black") +
+  geom_vline(xintercept=-.5, linetype="dashed", color = "black") +
+  theme_minimal() +
+  xlim(-2,2) +
+  theme(legend.position = "none",
+        axis.text=element_text(size=10,color="black"))
+
+#label reds
+labdata <- signi2.rap %>% filter(abs(log2FC)>0.5 & !(p.signif =="ns"))
+labvolc.rap<- volc.rap + 
+  geom_text_repel(
+  data=subset(labdata,log2FC>0.5),
+  aes(label=species),
+  size=3,
+  fontface="bold",
+  color="black",
+  nudge_x      = 1.75 - subset(labdata,log2FC>0.5)$log2FC,
+  direction = "y",
+    hjust        = 0,
+    segment.size = 0.2
+  ) +
+  geom_text_repel(
+  data=subset(labdata,log2FC<0.5),
+  aes(label=species),
+  size=3,
+  fontface="bold",
+  color="black",
+  nudge_x      = -1.75 - subset(labdata,log2FC<0.5)$log2FC,
+  direction = "y",
+    hjust        = 0,
+    segment.size = 0.2
+  )
+
+#ggsave(filename = "volcrap.pdf",width=20, height=12, unit="cm")
+
+data<- signi2.dmso %>% 
+  mutate(color=(ifelse(abs(log2FC)>0.5 & !(p.signif =="ns"), "red", "black")))
+volc.dmso = ggplot(data, aes(log2FC, -log10(p),text=species)) + #volcanoplot with log2Foldchange versus pvalue
+   geom_point(aes(col=color)) + #add points colored by significance
+  scale_color_manual(values=c("gray50","red")) +
+  scale_y_continuous("P-value", breaks=c(0,1,2,3), labels=c(1,0.1,0.01,0.001)) +
+  labs(x="log2(after/before egress) -RAP") +
+  geom_hline(yintercept=1.30103, linetype="dashed", color = "black") +
+  geom_vline(xintercept=.5, linetype="dashed", color = "black") +
+  geom_vline(xintercept=-.5, linetype="dashed", color = "black") +
+  theme_minimal() +
+  xlim(-2,2) +
+  theme(legend.position = "none",
+        axis.text=element_text(size=10,color="black"))
+
+#label reds
+labdata <- signi2.dmso %>% filter(abs(log2FC)>0.5 & !(p.signif =="ns"))
+labvolc.dmso<- volc.dmso + 
+  geom_text_repel(
+  data=subset(labdata,log2FC>0.5),
+  aes(label=species),
+  size=3,
+  fontface="bold",
+  color="black",
+  nudge_x      = 1.75 - subset(labdata,log2FC>0.5)$log2FC,
+  direction = "y",
+    hjust        = 0,
+    segment.size = 0.2
+  ) +
+  geom_text_repel(
+  data=subset(labdata,log2FC<0.5),
+  aes(label=species),
+  size=3,
+  fontface="bold",
+  color="black",
+  nudge_x      = -1.75 - subset(labdata,log2FC<0.5)$log2FC,
+  direction = "y",
+    hjust        = 0,
+    segment.size = 0.2
+  )
+
+#labvolc.rap + labvolc.dmso
+#ggsave(filename = "volc.pdf",width=30, height=10, unit="cm")
+
+iplot1<-ggplotly(labvolc.rap, tooltip="text")
+for (i in 1:length(iplot1$x$data)){
+    if (!is.null(iplot1$x$data[[i]]$name)){
+        iplot1$x$data[[i]]$name =  gsub("\\(","",str_split(iplot1$x$data[[i]]$name,",")[[1]][1])
+    }
+}
+
+iplot2<-ggplotly(labvolc.dmso, tooltip="text")
+for (i in 1:length(iplot1$x$data)){
+    if (!is.null(iplot1$x$data[[i]]$name)){
+        iplot1$x$data[[i]]$name =  gsub("\\(","",str_split(iplot1$x$data[[i]]$name,",")[[1]][1])
+    }
+}
+```
+
+```{r fig6C, echo=FALSE, fig.cap= "<B>Figure 6C. Volcano plots showing fold changes in levels of various phospholipid species occurring during egress of RAP (+RAP) and mock-treated (-RAP) LCAT:2loxPint schizonts. Levels of acylphosphatidylglycerol (acylPG) decrease upon egress of both +RAP and -RAP parasites. An increase in several phosphatidylserine species is observed upon egress of +RAP parasites (comparisons were done across 6 independent egress experiments)."}
+
+subplot(iplot1, iplot2, nrows = 1,shareY = T,titleX = T,titleY = T)
+```
+
+### Changes in PS and acylPG species during egress (Supplementary Figure 5A)
+
+```{r message=FALSE, warning=FALSE, tidy=TRUE}
+#SupplFig5A
+PS.avgpeakareas<- avgpeakareas2 %>% filter(Class %in% "PS") 
+PS_diffs<- PS.avgpeakareas %>% ungroup() %>%
+  mutate(treatment=c(rep("DMSO",nrow(PS.avgpeakareas)/2),rep("RAP",nrow(PS.avgpeakareas)/2))) %>%
+  group_by(species,treatment) %>% 
+  dplyr::summarise(diffOfdiff=last(mean)/first(mean)) %>%
+  pivot_wider(names_from = treatment,values_from=diffOfdiff) %>%
+  ungroup() %>%
+  mutate(order=subset(PS.avgpeakareas$mean,PS.avgpeakareas$Group %in% "DMSO_noC2"))
+
+
+pbar<-ggplot(PS.avgpeakareas,aes(x=reorder(species,-mean),y=mean,fill=Group)) +
+      geom_bar(position=position_dodge(), stat="identity") +
+      geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.2,size=0.1,position=position_dodge(0.9)) +
+     scale_fill_manual(values = c(lighten("gray45",amount=0.75),"gray45",lighten("#42A341",amount=0.75),"#42A341")) +
+        theme_minimal() +
+        theme(axis.text=element_text(size=10,color="black"), 
+            axis.text.x = element_text(angle = 45, hjust = 1),
+#            aspect.ratio = 1/7,
+            legend.position = "bottom") +
+      xlab(element_blank()) +
+      ylab("Relative Abundance")+
+  coord_flip()
+
+pdot<- ggplot(PS_diffs) +
+  geom_segment(aes(x=reorder(species,-order), xend=reorder(species,-order), y=DMSO, yend=RAP), color="gray") +
+  geom_point(aes(x=reorder(species,-order),y=DMSO),color="gray45",size=2) +
+  geom_point(aes(x=reorder(species,-order),y=RAP),color="#42A341",size=2) +
+  theme_minimal() +
+        theme(axis.text=element_text(size=10,color="black"), 
+#            axis.text.x = element_text(angle = 45, hjust = 1),
+#            aspect.ratio = 1/7,
+            legend.position = "bottom") +
+      xlab(element_blank()) +
+      ylab("log2(after/before egress)")+
+  coord_flip()
+  
+#pbar+pdot
+#ggsave(filename = "PS.pdf",width=20, height=10, unit="cm")
+```
+```{r supplfig5A, echo=FALSE, fig.cap= "<B>Supplementary Figure S5A. Relative peak intensities (depicted as barplots) and log2 fold change (depicted as dot plots) of the significantly altered A) phosphatidylserine and B) acylphosphatidylglycerol species upon egress of mock- or RAP-treated LCAT:2loxPint schizonts."}
+
+pbar+pdot
+```
+
+```{r message=FALSE, warning=FALSE, tidy=TRUE}
+#SupplFig5B
+acylPG.avgpeakareas<- avgpeakareas2 %>% filter(Class %in% "acylPG") 
+acylPG_diffs<- acylPG.avgpeakareas %>% ungroup() %>%
+  mutate(treatment=c(rep("DMSO",nrow(acylPG.avgpeakareas)/2),rep("RAP",nrow(acylPG.avgpeakareas)/2))) %>%
+  group_by(species,treatment) %>% 
+  dplyr::summarise(diffOfdiff=last(mean)/first(mean)) %>%
+  pivot_wider(names_from = treatment,values_from=diffOfdiff) %>%
+  ungroup() %>%
+  mutate(order=subset(acylPG.avgpeakareas$mean,acylPG.avgpeakareas$Group %in% "DMSO_noC2"))
+
+
+pbar<-ggplot(acylPG.avgpeakareas,aes(x=reorder(species,-mean),y=mean,fill=Group)) +
+      geom_bar(position=position_dodge(), stat="identity") +
+      geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.2,size=0.1,position=position_dodge(0.9)) +
+     scale_fill_manual(values = c(lighten("gray45",amount=0.75),"gray45",lighten("#42A341",amount=0.75),"#42A341")) +
+        theme_minimal() +
+        theme(axis.text=element_text(size=10,color="black"), 
+            axis.text.x = element_text(angle = 45, hjust = 1),
+#            aspect.ratio = 1/7,
+            legend.position = "bottom") +
+      xlab(element_blank()) +
+      ylab("Relative Abundance")+
+  coord_flip()
+
+pdot<- ggplot(acylPG_diffs) +
+  geom_segment(aes(x=reorder(species,-order), xend=reorder(species,-order), y=DMSO, yend=RAP), color="gray") +
+  geom_point(aes(x=reorder(species,-order),y=DMSO),color="gray45",size=2) +
+  geom_point(aes(x=reorder(species,-order),y=RAP),color="#42A341",size=2) +
+  theme_minimal() +
+        theme(axis.text=element_text(size=10,color="black"), 
+#            axis.text.x = element_text(angle = 45, hjust = 1),
+#            aspect.ratio = 1/7,
+            legend.position = "bottom") +
+      xlab(element_blank()) +
+      ylab("log2(after/before egress)")+
+  coord_flip()
+  
+#pbar+pdot
+#ggsave(filename = "acylPG.pdf",width=20, height=10, unit="cm")
+```
+
+```{r supplfig5B, echo=FALSE, fig.cap= "<B>Supplementary Figure S5B. Relative peak intensities (depicted as barplots) and log2 fold change (depicted as dot plots) of the significantly altered A) phosphatidylserine and B) acylphosphatidylglycerol species upon egress of mock- or RAP-treated LCAT:2loxPint schizonts."}
+
+pbar+pdot
+```
+
